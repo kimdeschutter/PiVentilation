@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+<head>
+<title>Badkamerventilatie</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { text-align: center; }
+      header { font-family: sans-serif, monospace; vertical-align: middle; background: #000; background: linear-gradient(#222, #000) repeat scroll 0% 0% transparent; border-bottom: 4px solid #bd1143; padding: 8px; margin-bottom: 16px; }
+      header h1 { color: white; font-size: 32px; margin: 0; }
+      header h2 { font-size: 18px; color: #444; }
+      .piface { margin-bottom: 42px; }
+      #pi_logo { vertical-align: middle;}
+      #input, #output { display: none; padding: 4px; }
+      .input_bt, .output_bt { display: inline-block; width: 64px; height: 64px; border: 3px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; margin: 4px;}
+      .input_bt div, .output_bt div { font-size: 26px; margin-top: 6px; }
+      #host { background: #bd1143;  border: 3px solid black; border-radius: 4px; padding: 4px; color: white; font-size: 18px; font-family: monospace; }
+      .footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0 16px;; height: 30px; line-height: 2em; color: #ccc; background: #000; background: linear-gradient(#222, #000) repeat scroll 0% 0% transparent; border-top: 2px solid #262626; text-align: right; font-size: 0.8em; z-index: 100; }
+      a { color: #999; text-decoration: none; border: 0px none; }
+      a:hover { text-decoration: underline; }
+      @media only screen and (max-width: 640px) {
+      .input_bt, .output_bt { width: 48px; height: 48px; border: 1px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
+      }
+      @media only screen and (max-width: 320px) {
+      .input_bt, .output_bt { width: 64px; height: 64px; border: 1px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
+      }
+      @media only screen and (min-width: 900px) {
+      .input_bt, .output_bt { width: 92px; height: 92px; border: 4px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
+      }
+    </style>
+<script src="http://code.jquery.com/jquery-2.0.0.js"></script>
+<script type="text/javascript" src="/javascript/RGraph.common.core.js" ></script>
+<script type="text/javascript" src="/javascript/RGraph.thermometer.js" ></script>
+<script type="text/javascript" src="/javascript/RGraph.gauge.js" ></script>
+</head>
+<body>
+  <header>
+    <h1>PiControl</h1>
+    <h2>Badkamerventilatie</h2>
+  </header>
+    <input type="button" onclick="toggle(1);" value="Aan" /><input type="button" onclick="toggle(2);" value="Auto" /><input type="button" onclick="toggle(0);" value="Uit" />
+    <div id="status"></div>
+<label id="conn_text"></label><br />
+<label id="sensor1">Sensor 1: </label><br />
+<label id="sensor2">Sensor 2: </label><br />
+<canvas id="cvs_t1" width="100" height="200">[No canvas support]</canvas>
+<canvas id="cvs_h1" width="200" height="200">[No canvas support]</canvas>
+<canvas id="cvs_t2" width="100" height="200">[No canvas support]</canvas>
+<canvas id="cvs_h2" width="200" height="200">[No canvas support]</canvas>
+<script type="application/javascript">
+  var ws = new WebSocket("ws://192.168.0.10:8888/ws");
+  $(document).ready(function () {
+    ws.onopen = function(evt) {
+      var conn_status = document.getElementById('conn_text');
+      conn_status.innerHTML = "Status: Connected!"
+    };
+                
+    ws.onmessage = function(evt) {
+      var sensor1 = document.getElementById('sensor1');
+      var sensor2 = document.getElementById('sensor2');
+	  var status = document.getElementById('status');
+      current_temp = (evt.data).split(";");			
+      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " °C; " + current_temp[1] + "%";
+      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + " °C; " + current_temp[3] + "%";
+	  switch(Number(current_temp[4])) {
+		case 0:
+			status.innerHTML = "Status: uit";
+			break;
+		case 1:
+			status.innerHTML = "Status: aan";
+			break;
+		case 2:
+			status.innerHTML = "Status: auto";
+			break;
+	  }
+      drawGraph_t1();
+      drawGraph_h1();
+      drawGraph_t2();
+      drawGraph_h2();
+    };
+
+    ws.onclose = function(evt) {
+      var conn_status = document.getElementById('conn_text');
+      conn_status.innerHTML = "Status: disonnected!"
+    };
+  });
+  
+	function toggle(mode) {
+		ws.send(mode);
+	}
+	
+  function drawGraph_t1(){
+    var canvas = document.getElementById('cvs_t1');
+    RGraph.Clear(canvas);
+
+    var thermometer = new RGraph.Thermometer('cvs_t1', 0,40, eval(current_temp[0]))
+    //.set('title.side', 'Environment')
+    .set('value.label', false)
+    .set('scale.visible', true)
+    .set('scale.decimals',1)
+    .set('gutter.left', 30)
+    .set('gutter.right', 30)
+    .draw();
+  }
+
+  function drawGraph_h1(){
+    var canvas = document.getElementById('cvs_h1');
+    RGraph.Clear(canvas);
+
+	var gauge = new RGraph.Gauge({
+        id: 'cvs_h1',
+        min: 0,
+        max: 100,
+        value: eval(current_temp[1]),
+        options: {
+            scaleDecimals: 0,
+            tickmarksSmall: 50,
+            tickmarksBig: 10,
+			textSize: 8,
+            titleTop: 'Luchtvochtigheid', 
+            titleTopSize: 6,
+            titleBottom: '%',
+			titleBottomSize: 6,
+            titleBottomColor: '#aaa',
+            borderOuter: 'Gradient(white:white:white:white:white:white:white:white:white:white:#aaa)'}
+    }).draw();
+
+  }
+
+  function drawGraph_t2(){
+    var canvas = document.getElementById('cvs_t2');
+    RGraph.Clear(canvas);
+
+    var thermometer = new RGraph.Thermometer('cvs_t2', 0,40,     eval(current_temp[2]))
+    //.set('title.side', 'Environment')
+    .set('value.label', false)
+    .set('scale.visible', true)
+    .set('scale.decimals',1)
+    .set('gutter.left', 30)
+    .set('gutter.right', 30)
+    .draw();
+  }
+
+  function drawGraph_h2(){
+    var canvas = document.getElementById('cvs_h2');
+    RGraph.Clear(canvas);
+
+	var gauge = new RGraph.Gauge({
+        id: 'cvs_h2',
+        min: 0,
+        max: 100,
+        value: eval(current_temp[3]),
+        options: {
+            scaleDecimals: 0,
+            tickmarksSmall: 50,
+            tickmarksBig: 10,
+			textSize: 8,
+            titleTop: 'Luchtvochtigheid', 
+            titleTopSize: 6,
+            titleBottom: '%',
+			titleBottomSize: 6,
+            titleBottomColor: '#aaa',
+            borderOuter: 'Gradient(white:white:white:white:white:white:white:white:white:white:#aaa)'}
+    }).draw();
+  }
+</script>
+</body>
+</html>
