@@ -34,12 +34,13 @@
 </head>
 <body>
   <header>
-    <h1>PiControl</h1>
+    <h1>PiVentilation</h1>
     <h2>Badkamerventilatie</h2>
   </header>
     <input type="button" onclick="toggle(1);" value="Aan" /><input type="button" onclick="toggle(2);" value="Auto" /><input type="button" onclick="toggle(0);" value="Uit" />
     <div id="status"></div>
 <label id="conn_text"></label><br />
+<label id="conn_text2"></label><br />
 <label id="sensor1">Sensor 1: </label><br />
 <label id="sensor2">Sensor 2: </label><br />
 <canvas id="cvs_t1" width="100" height="200">[No canvas support]</canvas>
@@ -48,6 +49,7 @@
 <canvas id="cvs_h2" width="200" height="200">[No canvas support]</canvas>
 <script type="application/javascript">
   var ws = new WebSocket("ws://192.168.0.10:8888/ws");
+  var ws2 = new WebSocket("ws://192.168.0.10:8888/graph");
   $(document).ready(function () {
     ws.onopen = function(evt) {
       var conn_status = document.getElementById('conn_text');
@@ -59,8 +61,8 @@
       var sensor2 = document.getElementById('sensor2');
 	  var status = document.getElementById('status');
       current_temp = (evt.data).split(";");			
-      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " °C; " + current_temp[1] + "%";
-      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + " °C; " + current_temp[3] + "%";
+      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " C; " + current_temp[1] + "%";
+      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + "  " + current_temp[3] + "%";
 	  switch(Number(current_temp[4])) {
 		case 0:
 			status.innerHTML = "Status: uit";
@@ -81,6 +83,16 @@
     ws.onclose = function(evt) {
       var conn_status = document.getElementById('conn_text');
       conn_status.innerHTML = "Status: disonnected!"
+    };
+	
+	ws2.onopen = function(evt) {
+      var conn_status = document.getElementById('conn_text2');
+      conn_status.innerHTML = "Status 2:  Connected!"
+    };
+	
+	ws2.onclose = function(evt) {
+      var conn_status = document.getElementById('conn_text2');
+      conn_status.innerHTML = "Status 2: disonnected!"
     };
   });
   
