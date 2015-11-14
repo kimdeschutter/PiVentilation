@@ -61,8 +61,8 @@
       var sensor2 = document.getElementById('sensor2');
 	  var status = document.getElementById('status');
       current_temp = (evt.data).split(";");			
-      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " C; " + current_temp[1] + "%";
-      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + "  " + current_temp[3] + "%";
+      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " °C; " + current_temp[1] + "%";
+      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + " °C; " + current_temp[3] + "%";
 	  switch(Number(current_temp[4])) {
 		case 0:
 			status.innerHTML = "Status: uit";
