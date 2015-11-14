@@ -43,9 +43,13 @@ try:
 			if self in wss:
 				wss.remove(self)
 
+	class GrapHandler(tornado.websocket.WebSocketHandler):
+		def open(self):
+			print("ok")
+
 	class IndexPageHandler(tornado.web.RequestHandler):
 		def get(self):
-			self.render("index2.html")
+			self.render("index.html")
 
 	application = tornado.web.Application([
 		(r'/', IndexPageHandler),
