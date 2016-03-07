@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>Badkamerventilatie</title>
+<link rel="icon" type="image/png" href="/javascript/favicon.png" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { text-align: center; }
@@ -23,7 +24,7 @@
       @media only screen and (max-width: 320px) {
       .input_bt, .output_bt { width: 64px; height: 64px; border: 1px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
       }
-      @media only screen and (min-width: 900px) {
+      @media only screen and (min-width: 700px) {
       .input_bt, .output_bt { width: 92px; height: 92px; border: 4px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
       }
     </style>
@@ -37,10 +38,10 @@
     <h1>PiVentilation</h1>
     <h2>Badkamerventilatie</h2>
   </header>
-    <input type="button" onclick="toggle(1);" value="Aan" /><input type="button" onclick="toggle(2);" value="Auto" /><input type="button" onclick="toggle(0);" value="Uit" />
-    <div id="status"></div>
+    <input type="button" onclick="toggle(1);" value="Aan" /><input type="button" onclick="toggle(2);" value="Auto" /><input type="button" onclick="toggle(0);" value="Uit" /><button onclick="window.location.href='/static/graph.html'">Statistieken</button>
+    <div id="modus"></div>
+<label id="status"></label><br />
 <label id="conn_text"></label><br />
-<label id="conn_text2"></label><br />
 <label id="sensor1">Sensor 1: </label><br />
 <label id="sensor2">Sensor 2: </label><br />
 <canvas id="cvs_t1" width="100" height="200">[No canvas support]</canvas>
@@ -48,30 +49,41 @@
 <canvas id="cvs_t2" width="100" height="200">[No canvas support]</canvas>
 <canvas id="cvs_h2" width="200" height="200">[No canvas support]</canvas>
 <script type="application/javascript">
+  graphdata = "";
   var ws = new WebSocket("ws://192.168.0.10:8888/ws");
-  var ws2 = new WebSocket("ws://192.168.0.10:8888/graph");
+  
   $(document).ready(function () {
     ws.onopen = function(evt) {
       var conn_status = document.getElementById('conn_text');
-      conn_status.innerHTML = "Status: Connected!"
+      conn_status.innerHTML = "Status: verbonden!"
     };
                 
     ws.onmessage = function(evt) {
       var sensor1 = document.getElementById('sensor1');
       var sensor2 = document.getElementById('sensor2');
+	  var modus = document.getElementById('modus');
 	  var status = document.getElementById('status');
-      current_temp = (evt.data).split(";");			
-      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " Â°C; " + current_temp[1] + "%";
-      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + " Â°C; " + current_temp[3] + "%";
+      current_temp = (evt.data).split(";");	
+	  console.log(evt.data);
+      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " °C; " + current_temp[1] + "%";
+      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + " °C; " + current_temp[3] + "%";
 	  switch(Number(current_temp[4])) {
 		case 0:
-			status.innerHTML = "Status: uit";
+			modus.innerHTML = "Modus: uit";
 			break;
 		case 1:
-			status.innerHTML = "Status: aan";
+			modus.innerHTML = "Modus: aan";
 			break;
 		case 2:
-			status.innerHTML = "Status: auto";
+			modus.innerHTML = "Modus: auto";
+			break;
+	  }
+	  switch(Number(current_temp[5])) {
+		case 0:
+			status.innerHTML = "Ventilator: uit";
+			break;
+		case 1:
+			status.innerHTML = "Ventilator: aan";
 			break;
 	  }
       drawGraph_t1();
@@ -82,18 +94,10 @@
 
     ws.onclose = function(evt) {
       var conn_status = document.getElementById('conn_text');
-      conn_status.innerHTML = "Status: disonnected!"
+      conn_status.innerHTML = "Status: verbinding verbroken!"
     };
 	
-	ws2.onopen = function(evt) {
-      var conn_status = document.getElementById('conn_text2');
-      conn_status.innerHTML = "Status 2:  Connected!"
-    };
-	
-	ws2.onclose = function(evt) {
-      var conn_status = document.getElementById('conn_text2');
-      conn_status.innerHTML = "Status 2: disonnected!"
-    };
+    
   });
   
 	function toggle(mode) {
