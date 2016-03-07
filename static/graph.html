@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+<title>Badkamerventilatie</title>
+<link rel="icon" type="image/png" href="/javascript/favicon.png" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { text-align: center; }
+      header { font-family: sans-serif, monospace; vertical-align: middle; background: #000; background: linear-gradient(#222, #000) repeat scroll 0% 0% transparent; border-bottom: 4px solid #bd1143; padding: 8px; margin-bottom: 16px; }
+      header h1 { color: white; font-size: 32px; margin: 0; }
+      header h2 { font-size: 18px; color: #444; }
+      .piface { margin-bottom: 42px; }
+      #pi_logo { vertical-align: middle;}
+      #input, #output { display: none; padding: 4px; }
+      .input_bt, .output_bt { display: inline-block; width: 64px; height: 64px; border: 3px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; margin: 4px;}
+      .input_bt div, .output_bt div { font-size: 26px; margin-top: 6px; }
+      #host { background: #bd1143;  border: 3px solid black; border-radius: 4px; padding: 4px; color: white; font-size: 18px; font-family: monospace; }
+      .footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0 16px;; height: 30px; line-height: 2em; color: #ccc; background: #000; background: linear-gradient(#222, #000) repeat scroll 0% 0% transparent; border-top: 2px solid #262626; text-align: right; font-size: 0.8em; z-index: 100; }
+      a { color: #999; text-decoration: none; border: 0px none; }
+      a:hover { text-decoration: underline; }
+      @media only screen and (max-width: 640px) {
+      .input_bt, .output_bt { width: 48px; height: 48px; border: 1px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
+      }
+      @media only screen and (max-width: 320px) {
+      .input_bt, .output_bt { width: 64px; height: 64px; border: 1px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
+      }
+      @media only screen and (min-width: 700px) {
+      .input_bt, .output_bt { width: 92px; height: 92px; border: 4px solid black; border-radius: 4px; background: #333; color: #999; font-family: sans-serif, monospace; font-size: 12px; }
+      }
+    </style>
+<script src="http://code.jquery.com/jquery-2.0.0.js"></script>
+<!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      // Load the Visualization API and the piechart package.
+      google.load('visualization', '1.1', {'packages':['line']});
+
+      // Set a callback to run when the Google Visualization API is loaded.
+      google.setOnLoadCallback(drawChart);
+
+      var ws2 = new WebSocket("ws://192.168.0.10:8888/graph");
+
+      //ws2.onopen = function(evt) {
+      //var conn_status = document.getElementById('conn_text2');
+      //conn_status.innerHTML = "Status 2:  Connected!";
+    //};
+
+    var explodedValues = [];
+	var output = [];
+	
+    ws2.onmessage = function(evt) {
+		graphdata = String(JSON.parse(evt.data));
+		explodedValues = graphdata.split(',');
+		
+		for (var i=0; i<explodedValues.length; i+=5) {
+			var dateString = explodedValues[i];
+			var reggie = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/;
+			var dateArray = reggie.exec(dateString); 
+			var dateObject = new Date(
+				(+dateArray[1]),
+				(+dateArray[2])-1, // Careful, month starts at 0!
+				(+dateArray[3]),
+				(+dateArray[4]),
+				(+dateArray[5]),
+				(+dateArray[6])
+			);
+			output[i/5] = [dateObject,Number(explodedValues[i+1]),Number(explodedValues[i+2]),Number(explodedValues[i+3]),Number(explodedValues[i+4])];
+		}
+	drawChart();
+    };
+	
+    //ws2.onclose = function(evt) {
+    //  var conn_status = document.getElementById('conn_text2');
+    //  conn_status.innerHTML = "Status 2: disonnected!"
+    //};
+
+      // Callback that creates and populates a data table,
+      // instantiates the pie chart, passes in the data and
+      // draws it.
+      function drawChart() {
+
+        // Create the data table.
+        var data = new google.visualization.DataTable();
+        data.addColumn('datetime', 'Dag');
+        data.addColumn('number', 'H1');
+		data.addColumn('number', 'H2');
+		data.addColumn('number', 'T1');
+		data.addColumn('number', 'T2');
+
+	for (i = 0; i<output.length; i++) {
+		data.addRow(output[i]);
+	}
+    // Set chart options
+    var options = {
+		chart: {
+		  title:'Luchtvochtigheid'
+		},
+		width:800,
+		height:400,
+		series: {
+          // Gives each series an axis name that matches the Y-axis below.
+          0: {axis: 'Humidity'},
+		  1: {axis: 'Humidity'},
+		  2: {axis: 'Temperatuur'},
+		  3: {axis: 'Temperatuur'}
+        },
+
+		axes: {
+			y: {
+				Humidity: {label: 'Luchtvochtigheid %', range: {min: 40.0, max: 80.0}},
+				Temperatuur: {label: 'Temperatuur °C', range: {min: 10.0, max: 30.0}}
+			}
+		}
+	};
+
+        // Instantiate and draw our chart, passing in some options.
+        var chart = new google.charts.Line(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+
+</head>
+<body>
+  <header>
+    <h1>PiVentilation</h1>
+    <h2>Badkamerventilatie</h2>
+  </header>
+    <input type="button" onclick="toggle(1);" value="Aan" /><input type="button" onclick="toggle(2);" value="Auto" /><input type="button" onclick="toggle(0);" value="Uit" /><button onclick="window.location.href='/..'">Home</button>
+    <div id="modus"></div>
+<label id="status"></label><br />
+<label id="conn_text"></label><br />
+<label id="sensor1">Sensor 1: </label><br />
+<label id="sensor2">Sensor 2: </label><br />
+<script type="application/javascript">
+  var ws = new WebSocket("ws://192.168.0.10:8888/ws");
+  
+  $(document).ready(function () {
+    ws.onopen = function(evt) {
+      var conn_status = document.getElementById('conn_text');
+      conn_status.innerHTML = "Status: Connected!"
+    };
+                
+    ws.onmessage = function(evt) {
+      var sensor1 = document.getElementById('sensor1');
+      var sensor2 = document.getElementById('sensor2');
+	  var modus = document.getElementById('modus');
+	  var status = document.getElementById('status');
+      current_temp = (evt.data).split(";");	
+	  console.log(evt.data);
+      sensor1.innerHTML = "Sensor 1: " + current_temp[0] + " &deg;C; " + current_temp[1] + "%";
+      sensor2.innerHTML = "Sensor 2: " + current_temp[2] + " &deg;C; " + current_temp[3] + "%";
+	  switch(Number(current_temp[4])) {
+		case 0:
+			modus.innerHTML = "Modus: uit";
+			break;
+		case 1:
+			modus.innerHTML = "Modus: aan";
+			break;
+		case 2:
+			modus.innerHTML = "Modus: auto";
+			break;
+	  }
+	  switch(Number(current_temp[5])) {
+		case 0:
+			status.innerHTML = "Ventilator: uit";
+			break;
+		case 1:
+			status.innerHTML = "Ventilator: aan";
+			break;
+	  }
+    };
+
+    ws.onclose = function(evt) {
+      var conn_status = document.getElementById('conn_text');
+      conn_status.innerHTML = "Status: disonnected!"
+    };
+
+  });
+  
+	function toggle(mode) {
+		ws.send(mode);
+	}
+</script>
+<!--Div that will hold the pie chart-->
+    <div id="chart_div"></div>
+</body>
+</html>
